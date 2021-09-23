@@ -1,0 +1,22 @@
+extends layout.pug 
+
+block content
+  .container
+    ul 
+      each post of pagePosts
+        li 
+          a(href="/post/" + post.id)= post.title
+          | by 
+          span= post.postedBy
+    nav(aria-label='Page navigation example')
+      ul.pagination
+        if page > 1
+          li.page-item
+            a.page-link(href=`/?page=${page - 1}`) 上一页
+        else 
+          li.page-item.disabled
+            a.page-link(href=`/?page=${page - 1}`) 上一页
+        li.page-item
+          a.page-link(href=`/?page=${page}`)= page
+        li.page-item
+          a.page-link(href=`/?page=${page + 1}`) 下一页

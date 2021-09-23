@@ -1,0 +1,11 @@
+.base {
+  background-color: #e2e2e2;
+}
+.base-bg {
+  background-color: #fff;
+}
+.container {
+  margin-top: 20px;
+  background-color: #fff;
+  border-radius: 1%;
+}

@@ -1,0 +1,43 @@
+doctype  html 
+
+html
+  head 
+    meta(http-equiv="Content-Type", content="text/html;charset=UTF-8")
+    link(rel="stylesheet", href="/bootstrap.min.css")
+    link(rel="stylesheet", href="/layout.css")
+    link(rel="stylesheet", href="/fail.css")
+    script(src="/jquery-3.6.0.min.js") 
+    title BBS 
+  body.base 
+    header
+      nav.navbar.navbar-expand-lg.navbar-light.base-bg
+        .container-fluid
+          a.navbar-brand(href="/") BBS
+          button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarNavAltMarkup', aria-controls='navbarNavAltMarkup', aria-expanded='false', aria-label='Toggle navigation')
+            span.navbar-toggler-icon
+          
+          if (isLogin)
+            #navbar
+              .navbar-nav
+                a.nav-link.active(aria-current='page', href='/') 首页
+                |
+                a.nav-link(href="#") #{loginUser}
+                | 
+                a.nav-link(href="/post") 发帖
+                |
+                a.nav-link(href="/logout") 登出
+          else
+            #navbar
+              .navbar-nav
+                a.nav-link.active(aria-current='page', href='/') 首页
+                |
+                a.nav-link(href="#") #{loginUser}
+                | 
+                a.nav-link(href="/login") 登录
+                |
+                a.nav-link(href="/register") 注册
+
+    block content
+
+    footer
+      p &copy;2021

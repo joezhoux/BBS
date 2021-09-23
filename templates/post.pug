@@ -1,0 +1,24 @@
+extends layout.pug 
+
+block content
+  .container
+    h2= post.title
+    fieldset= post.content
+    hr
+    each comment in postComments
+      fieldset
+        legend= comment.commentBy
+        p= comment.content
+    if isLogin
+      form(action=`/comment/post/${postId}`, method="POST")
+        .form-floating
+          textarea#floatingTextarea2.form-control(name="content" placeholder='Leave a comment here', style='height: 100px')
+          label(for='floatingTextarea2') 发表评论
+          div
+            button 开始对线
+    else 
+      p 想对线？
+        a(href="/login") 先登录
+
+
+

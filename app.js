@@ -1,6 +1,7 @@
 const express = require('express')
 const fs = require('fs')
 const cookieParser = require('cookie-parser')
+const escape = require('lodash/escape') // 转译无意义的标签<>为实体减少xss的可能
 
 const app = express()
 
@@ -26,11 +27,16 @@ setInterval(() => {
   console.log('saved')
 }, 5000)
 
+
+app.set('views', __dirname + '/templates')
+app.locals.pretty = true //pug输出格式化过的html
+
 app.use(cookieParser('sign secert'))//cookie签名生成密码
 app.use(express.static(__dirname + '/static'))
 app.use(express.json())
 app.use(express.urlencoded())
 app.use((req, res, next) =>{
+  //判断用户是否在登录状态
   if (req.signedCookies.loginUser) {
     req.isLogin = true
   } else {
@@ -41,28 +47,21 @@ app.use((req, res, next) =>{
 
 app.get('/', (req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
-  res.end(`
-    <h1>BBS</h1>
-    <div>
-      ${
-        req.isLogin ? 
-        `
-        <a href="/post">发帖</a>
-        <a href="/logout">登出</a>
-        ` : `
-        <a href="/login">登录</a>
-        <a href="/register.html">注册</a>
-        `
-      }
-    </div>
-    <ul>
-      ${
-        posts.map(post => {
-          return `<li><a href="/post/${post.id}">${post.title}</a></li>`
-        }).join('\n')
-      }
-    </ul>
-  `)
+  const page = Number(req.query.page || 1)
+  const pageSize = 10
+  const startIdx = (page - 1) * pageSize
+  const endIdx = startIdx + pageSize
+  const pagePosts = posts.slice(startIdx, endIdx)
+  if (pagePosts.length == 0) {
+    res.render('404.pug')
+    return
+  }
+  res.render('home.pug', {
+    isLogin: req.isLogin,
+    pagePosts: pagePosts,
+    page: page,
+    loginUser: 'aaa'
+  })
 })
 
 app.route('/post')
@@ -86,54 +85,19 @@ app.route('/post')
 })
 
 app.get('/post/:id', (req, res, next) => {
-  let postId = req.params.id
-  const postComments = comments.filter(it => it.id == postId)
-  let post = posts.find(it => it.id == postId)
+  const postId = req.params.id
+  const post = posts.find(it => it.id == postId)
   if (post) {
     res.set('Content-Type', 'text/html; charset=UTF-8')
-    res.end(`
-      <h1>BBS</h1>
-      <div>
-        ${
-          req.isLogin ? 
-          `
-          <a href="/post">发帖</a>
-          <a href="/logout">登出</a>
-          ` : `
-          <a href="/login">登录</a>
-          <a href="/register.html">注册</a>
-          `
-        }
-      </div>
-      <h2>${post.title}</h2>
-      <fieldset>${post.content}</fieldset>
-      <hr>
-      ${
-        postComments.map(it => {
-          return `
-            <fieldset>
-              <legend>${it.commentBy}</legend>
-              <p>${it.content}</p>
-            </fieldset>
-          `
-        }).join('\n')
-      }
-      ${
-        req.isLogin ? 
-        `
-          <form action="/comment/post/${postId}" method="POST">
-          <h3>发表评论</h3>
-          <textarea name="content" cols="30" rows="10"></textarea>
-          <div><button>开始对线</button></div>
-          </form>
-        ` : `
-          <p>想对线？先<a href="/login">登录</a></p>
-        `
-      }
-
-    `)
+    const postComments = comments.filter(it => it.id == postId)
+    res.render('post.pug', {
+      isLogin: req.isLogin,
+      post: post,
+      postComments: postComments,
+      postId: postId
+    })
   } else {
-    res.end('404 无法找到此贴')
+    res.render('404.pug')
   }
 })
 
@@ -157,10 +121,16 @@ app.route('/register')
 .post((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
   const regInfo = req.body
-  if (users.some(it => it.name == regInfo.name)) {
+  //检测用户名合法性
+  const USERNAME_RE = /^[0-9a-z_]+$/i
+  if (!USERNAME_RE.test(regInfo.name)) {
+    res.status(400).end('用户名只能由数字、字母以及下划线组成')
+  } else if (users.some(it => it.name == regInfo.name)) {
     res.status(400).end('用户名已被占用')
   } else if (users.some(it => it.email == regInfo.email)) {
     res.status(400).end('邮箱已被占用')
+  } else if (regInfo.password) {
+
   } else {
     regInfo.id = users.length
     users.push(regInfo)
@@ -186,6 +156,7 @@ app.route('/login')
   const loginInfo = req.body
   const user = users.find(it => it.name == loginInfo.name && it.password == loginInfo.password)
   if (user) {
+    //给cookie颁发签名 
     res.cookie('loginUser', user.name, {
       signed: true
     })
