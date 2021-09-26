@@ -1,0 +1,20 @@
+extends layout.pug 
+
+block content
+  link(rel="stylesheet", href="/issue-post.css")
+  .container 
+    if isLogin
+      .card
+        h5.card-header 添加新评论
+          .card-body 
+            form(action="/post", method="POST")
+              .form-floating
+                .mb-3
+                  label.form-label(for='title') 标题
+                  input.form-control(type='text', name='title')
+                  textarea#floatingTextarea2.form-control(name="content", style='height: 200px')
+                  button.btn.btn-primary 开始对线
+    else 
+      p 想对线？
+        a(href="/login") 先登录
+

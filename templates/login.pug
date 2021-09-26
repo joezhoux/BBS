@@ -1,0 +1,17 @@
+extends layout.pug 
+
+block content
+  link(rel="stylesheet", href="login.css")
+  .container
+    .card.w-50
+      h5.card-header 登录
+        .card-body
+          form(action='/login', method='POST')
+            .mb-3
+              label.form-label(for='formGroupExampleInput') 用户名
+              input#formGroupExampleInput.form-control(type='text', placeholder='用户名', name='name')
+            .mb-3
+              label.form-label(for='formGroupExampleInput2') 密码
+              input#formGroupExampleInput2.form-control(type='password', placeholder='密码', name='password')
+            input(hidden='', name='return_to', value=url || '/')
+            button.btn.btn-primary 登录

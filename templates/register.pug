@@ -1,0 +1,23 @@
+extends layout.pug 
+
+block content
+  .container
+    .row 
+      .col-sm-6
+        .card.left-card
+          form(action='/register', method='POST')
+            h5.card-header 注册 新用户
+              .card-body
+                .mb-3
+                  label.form-label(for='formGroupExampleInput') 用户名
+                  input.form-control(type='text', placeholder='用户名', name='name')
+                .mb-3
+                  label.form-label(for='formGroupExampleInput2') 邮箱
+                  input.form-control(type='text', placeholder='邮箱', name='email')
+                .mb-3
+                  label.form-label(for='formGroupExampleInput2') 密码
+                  input.form-control(type='password', placeholder='密码', name='password')
+                .mb-3
+                  label.form-label(for='formGroupExampleInput2') 重复密码
+                  input.form-control(type='password', placeholder='密码')
+                button.btn.btn-primary 注册

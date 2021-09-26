@@ -1,0 +1,12 @@
+#floatingTextarea2 {
+  resize: none;
+}
+.container {
+  padding: 20px;
+} 
+.btn {
+  margin-top: 20px;
+}
+.form-control {
+  margin-bottom: 20px;
+}

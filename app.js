@@ -66,7 +66,9 @@ app.get('/', (req, res, next) => {
 
 app.route('/post')
 .get((req, res, next) => {
-  res.sendFile(__dirname + '/static/post.html')
+  res.render('issue-post.pug', {
+    isLogin: req.isLogin
+  })
 })
 .post((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
@@ -116,7 +118,7 @@ app.post('/comment/post/:id', (req, res, next) => {
 
 app.route('/register')
 .get((req, res, next) => {
-  res.sendFile(__dirname + '/static/register.html')
+  res.render('register.pug')
 })
 .post((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
@@ -129,27 +131,21 @@ app.route('/register')
     res.status(400).end('用户名已被占用')
   } else if (users.some(it => it.email == regInfo.email)) {
     res.status(400).end('邮箱已被占用')
-  } else if (regInfo.password) {
-
+  } else if (regInfo.password == 0) {
+    res.status(400).end('密码不能为空')
   } else {
     regInfo.id = users.length
     users.push(regInfo)
-    res.end('注册中')
+    res.render('register-success.pug')
   }
 })
 
 app.route('/login')
 .get((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
-  res.end(`
-    <h1>登录页</h1>
-    <form action="/login" method="POST">
-      <div>用户名: <input type="text" name="name"></div>
-      <div>密码: <input type="password" name="password"></div>
-      <input hidden name="return_to" value="${req.headers.referer || '/'}">
-      <button>登录</button>
-    </form>
-  `)
+  res.render('login.pug', {
+    url: req.headers.referer
+  })
 })
 .post((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
