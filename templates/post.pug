@@ -3,22 +3,28 @@ extends layout.pug
 block content
   .container
     h2= post.title
+    h3 发帖人: #[a(href='/user/' + post.userId)= post.name]
+    span= post.timestamp 
     fieldset= post.content
+    if loginUser && post.userId  == loginUser.userId
+      button.btn.btn-danger.delete-post(data-post-id=post.postId) 删除帖子
     hr
-    each comment in postComments
+    each comment in comments
       fieldset
-        legend= comment.commentBy
+        legend
+          a(href='/user/' + comment.userId)= comment.name
+          | (#{comment.timestamp})
+          if loginUser && comment.userId  == loginUser.userId 
+            button.btn.btn-danger.delete-comment(data-comment-id=comment.commentId) 删除
         p= comment.content
     if isLogin
-      form(action=`/comment/post/${postId}`, method="POST")
+      form(action=`/comment/post/${post.postId}`, method="POST")
         .form-floating
-          textarea#floatingTextarea2.form-control(name="content" placeholder='Leave a comment here', style='height: 100px')
+          textarea#floatingTextarea2.form-control(name="content", style='height: 100px')
           label(for='floatingTextarea2') 发表评论
-          div
-            button.btn.btn-primary 开始对线
+          button.btn.btn-primary 开始对线
     else 
       p 想对线？
         a(href="/login") 先登录
-
-
-
+  
+  script(src="/delete.js") 

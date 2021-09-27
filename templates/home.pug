@@ -3,11 +3,11 @@ extends layout.pug
 block content
   .container
     ul 
-      each post of pagePosts
+      each post of posts
         li 
-          a(href="/post/" + post.id)= post.title
-          | by 
-          span= post.postedBy
+          a(href="/post/" + post.postId)= post.title
+          | #{" by "}
+          a(href="/user/" + post.userId)= post.name
     nav(aria-label='Page navigation example')
       ul.pagination
         if page > 1
@@ -18,5 +18,10 @@ block content
             a.page-link(href=`/?page=${page - 1}`) 上一页
         li.page-item
           a.page-link(href=`/?page=${page}`)= page
-        li.page-item
-          a.page-link(href=`/?page=${page + 1}`) 下一页
+        if page !== totalPage
+          li.page-item
+            a.page-link(href=`/?page=${page + 1}`) 下一页
+        else 
+          li.page-item.disabled
+            a.page-link(href=`/?page=${page + 1}`) 下一页
+          

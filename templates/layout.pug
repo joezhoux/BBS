@@ -17,12 +17,12 @@ html
           button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarNavAltMarkup', aria-controls='navbarNavAltMarkup', aria-expanded='false', aria-label='Toggle navigation')
             span.navbar-toggler-icon
           
-          if (isLogin)
+          if isLogin
             #navbar
               .navbar-nav
                 a.nav-link.active(aria-current='page', href='/') 首页
                 |
-                a.nav-link(href="#") #{loginUser}
+                a.nav-link(href="/user") #{loginUser.name}
                 | 
                 a.nav-link(href="/post") 发帖
                 |
@@ -31,8 +31,6 @@ html
             #navbar
               .navbar-nav
                 a.nav-link.active(aria-current='page', href='/') 首页
-                |
-                a.nav-link(href="#") #{loginUser}
                 | 
                 a.nav-link(href="/login") 登录
                 |

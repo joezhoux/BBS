@@ -2,31 +2,13 @@ const express = require('express')
 const fs = require('fs')
 const cookieParser = require('cookie-parser')
 const escape = require('lodash/escape') // 转译无意义的标签<>为实体减少xss的可能
+const Database = require('better-sqlite3')
+
+const db = new Database(__dirname + '/db/bbs.db')
 
 const app = express()
 
 const port = 8000
-
-const users = loadFile('./users.json')
-const posts = loadFile('./posts.json')
-const comments = loadFile('./comments.json')
-
-function loadFile(file) {
-  try {
-    let content = fs.readFileSync(file)
-    return JSON.parse(content)
-  } catch(e) {
-    return []
-  }
-}
-
-setInterval(() => {
-  fs.writeFileSync('./users.json', JSON.stringify(users, null, 2))//格式化缩进2
-  fs.writeFileSync('./posts.json', JSON.stringify(posts, null, 2))
-  fs.writeFileSync('./comments.json', JSON.stringify(comments, null, 2))
-  console.log('saved')
-}, 5000)
-
 
 app.set('views', __dirname + '/templates')
 app.locals.pretty = true //pug输出格式化过的html
@@ -35,51 +17,59 @@ app.use(cookieParser('sign secert'))//cookie签名生成密码
 app.use(express.static(__dirname + '/static'))
 app.use(express.json())
 app.use(express.urlencoded())
+
 app.use((req, res, next) =>{
   //判断用户是否在登录状态
   if (req.signedCookies.loginUser) {
+    const name = req.signedCookies.loginUser
     req.isLogin = true
+    req.loginUser = db.prepare('select * from users where name = ?').get(name)
   } else {
     req.isLogin = false
+    req.loginUser = null
   }
   next()
 })
 
+
 app.get('/', (req, res, next) => {
-  res.set('Content-Type', 'text/html; charset=UTF-8')
   const page = Number(req.query.page || 1)
   const pageSize = 10
-  const startIdx = (page - 1) * pageSize
-  const endIdx = startIdx + pageSize
-  const pagePosts = posts.slice(startIdx, endIdx)
+  const totalPost = db.prepare('SELECT count(*) AS total FROM posts').get().total
+  const totalPage = Math.ceil(totalPost / pageSize)
+  const offset = (page - 1) * pageSize
+  const pagePosts = db.prepare('SELECT * FROM posts JOIN users ON posts.userId = users.userId LIMIT ? OFFSET ?').all(pageSize, offset)
   if (pagePosts.length == 0) {
     res.render('404.pug')
     return
   }
   res.render('home.pug', {
     isLogin: req.isLogin,
-    pagePosts: pagePosts,
+    posts: pagePosts,
     page: page,
-    loginUser: 'aaa'
+    totalPage: totalPage,
+    loginUser: req.loginUser
   })
 })
 
 app.route('/post')
 .get((req, res, next) => {
   res.render('issue-post.pug', {
-    isLogin: req.isLogin
+    isLogin: req.isLogin,
+    loginUser: req.loginUser
+
   })
 })
 .post((req, res, next) => {
-  res.set('Content-Type', 'text/html; charset=UTF-8')
   const postInfo = req.body
   const userName = req.signedCookies.loginUser
   if (userName) {
+    const user = db.prepare('select * from users where name = ?').get(userName)
     postInfo.timestamp = new Date().toISOString()
-    postInfo.id = posts.length
-    postInfo.postedBy = userName
-    posts.push(postInfo)
-    res.redirect('/post/' + postInfo.id)
+    postInfo.userId = user.userId
+    const result = db.prepare('insert into posts (title, content, userId, timestamp) values (?, ?, ?, ?)')
+      .run(postInfo.title, postInfo.content, postInfo.userId, postInfo.timestamp)
+    res.redirect('/post/' + result.lastInsertRowid)
   } else {
     res.end('未登录，请先登录')
   }
@@ -88,15 +78,14 @@ app.route('/post')
 
 app.get('/post/:id', (req, res, next) => {
   const postId = req.params.id
-  const post = posts.find(it => it.id == postId)
+  const post = db.prepare('select * from posts join users on posts.userId = users.userId where postId = ?').get(postId)
   if (post) {
-    res.set('Content-Type', 'text/html; charset=UTF-8')
-    const postComments = comments.filter(it => it.id == postId)
+    const comments = db.prepare('select * from comments join users on comments.userId = users.userId where postId = ?').all(postId)
     res.render('post.pug', {
       isLogin: req.isLogin,
       post: post,
-      postComments: postComments,
-      postId: postId
+      comments: comments,
+      loginUser: req.loginUser
     })
   } else {
     res.render('404.pug')
@@ -106,13 +95,17 @@ app.get('/post/:id', (req, res, next) => {
 app.post('/comment/post/:id', (req, res, next) => {
   if (req.isLogin) {
     const comment = req.body
+    const user = req.loginUser
     comment.timestamp = new Date().toISOString()
-    comment.id = req.params.id
-    comment.commentBy = req.signedCookies.loginUser
-    comments.push(comment)
+    comment.postId = req.params.id
+    comment.userId = user.userId
+
+    const result = db.prepare('insert into comments (content, postId, userId, timestamp) values (?, ?, ?, ?)')
+      .run(comment.content, comment.postId, comment.userId, comment.timestamp)
+
     res.redirect(req.headers.referer || '/')
   } else {
-    res.end('请登录')
+    res.redirect('/login')
   }
 })
 
@@ -127,15 +120,11 @@ app.route('/register')
   const USERNAME_RE = /^[0-9a-z_]+$/i
   if (!USERNAME_RE.test(regInfo.name)) {
     res.status(400).end('用户名只能由数字、字母以及下划线组成')
-  } else if (users.some(it => it.name == regInfo.name)) {
-    res.status(400).end('用户名已被占用')
-  } else if (users.some(it => it.email == regInfo.email)) {
-    res.status(400).end('邮箱已被占用')
   } else if (regInfo.password == 0) {
     res.status(400).end('密码不能为空')
   } else {
-    regInfo.id = users.length
-    users.push(regInfo)
+    const addUser = db.prepare('insert into users (name, password, email) values (?, ?, ?)')
+    const result = addUser.run(regInfo.name, regInfo.password, regInfo.email)
     res.render('register-success.pug')
   }
 })
@@ -150,13 +139,14 @@ app.route('/login')
 .post((req, res, next) => {
   res.set('Content-Type', 'text/html; charset=UTF-8')
   const loginInfo = req.body
-  const user = users.find(it => it.name == loginInfo.name && it.password == loginInfo.password)
+  const userStmt = db.prepare('select * from users where name = ? and password = ?')
+  const user = userStmt.get(loginInfo.name, loginInfo.password)
   if (user) {
     //给cookie颁发签名 
     res.cookie('loginUser', user.name, {
       signed: true
     })
-    res.end('登录成功')
+    res.redirect(loginInfo.return_to || '/')
   } else {
     res.status(400).end('用户名或密码错误')
   }
