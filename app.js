@@ -7,7 +7,7 @@ const path = require('path')
 
 const storage = multer.diskStorage({
   destination: function (req, res, cb) {
-    cb(null, __dirname + '/uploads')
+    cb(null, __dirname + '/db/uploads')
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + Math.random().toString(16).slice(2) + path.extname(file.originalname))
@@ -28,7 +28,7 @@ app.use(cookieParser('sign secert'))//cookie签名生成密码
 app.use(express.static(__dirname + '/static'))
 app.use(express.json())
 app.use(express.urlencoded())
-app.use('/uploads', express.static(__dirname + '/uploads'))
+app.use('/uploads', express.static(__dirname + '/db/uploads'))
 
 app.use((req, res, next) =>{
   //判断用户是否在登录状态
@@ -152,7 +152,7 @@ app.route('/login')
     res.cookie('loginUser', user.name, {
       signed: true
     })
-    res.redirect(loginInfo.return_to || '/')
+    res.redirect('/')
   } else {
     res.status(400).end('用户名或密码错误')
   }
@@ -195,6 +195,15 @@ app.delete('/post/:id', (req, res, next) => {
     code: 0,
     msg: '删除成功'
   })
+})
+
+//上传头像
+
+app.post('/upload', upload.any(), (req, res, next) => {
+  const files = req.files
+  console.log(files)
+  const urls = files.map(file => `http://localhost:8000/uploads/` + file.filename)
+  res.json(urls)
 })
 
 app.listen(port, () => {

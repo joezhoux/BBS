@@ -4,7 +4,7 @@ block content
   .container
     h2= post.title
     h3 发帖人: #[a(href='/user/' + post.userId)= post.name]
-    img(src=post.avatar width=50 height=50)
+    img(src=post.avatar, width=50, height=50)
     span= post.timestamp 
     fieldset= post.content
     if loginUser && post.userId  == loginUser.userId
@@ -13,6 +13,7 @@ block content
     each comment in comments
       fieldset
         legend
+          img(src=comment.avatar, width=50, height=50)
           a(href='/user/' + comment.userId)= comment.name
           | (#{comment.timestamp})
           if loginUser && comment.userId  == loginUser.userId 
