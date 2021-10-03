@@ -5,3 +5,25 @@
 .card {
   margin: 20px 0px;
 }
+.captcha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.captcha .form-control {
+  width: 60%;
+  height: 40px;
+}
+.captcha img {
+  width: 50%;
+}
+
+.card-body {
+  position: relative;
+}
+
+a[type='button'] {
+  position: absolute;
+  right: 30px;
+  bottom: 46px;
+}

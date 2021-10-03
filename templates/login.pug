@@ -1,7 +1,9 @@
-extends layout.pug 
-
-block content
+html
+  head 
+  meta(http-equiv="Content-Type", content="text/html;charset=UTF-8")
+  link(rel="stylesheet", href="/bootstrap.min.css")
   link(rel="stylesheet", href="login.css")
+  script(src="/jquery-3.6.0.min.js") 
   .container
     .card.w-50
       h5.card-header 登录
@@ -14,4 +16,12 @@ block content
               label.form-label(for='formGroupExampleInput2') 密码
               input#formGroupExampleInput2.form-control(type='password', placeholder='密码', name='password')
             input(hidden='', name='return_to', value=url || '/')
-            button.btn.btn-primary 登录
+            .mb-3
+              label.form-label(for='formGroupExampleInpu3') 验证码
+              .captcha
+                input#formGroupExampleInpu3.form-control(type='text', placeholder='验证码', name='captcha')
+                img(src='/captcha-img')
+            .mb-3 
+              button.btn.btn-primary 登录
+          a.btn.btn-link#refresh(type='button') 刷新验证码
+script(src="/login.js")    

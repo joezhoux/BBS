@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser')
 const Database = require('better-sqlite3')
 const multer  = require('multer')
 const path = require('path')
+const svgCaptcha = require('svg-captcha')
 
 const storage = multer.diskStorage({
   destination: function (req, res, cb) {
@@ -39,6 +40,29 @@ app.use((req, res, next) =>{
   } else {
     req.isLogin = false
     req.loginUser = null
+  }
+  next()
+})
+
+//session
+const sessions = {}
+
+setInterval(() => {
+  console.log(sessions)
+}, 5000)
+
+
+app.use(function session(req, res, next) {
+  if (!req.cookies.sessionId) {
+    const sessionId = Math.random().toString(16).slice(2)
+    res.cookie('sessionId', sessionId)
+    sessions[sessionId] = {}
+    req.session = sessions[sessionId]
+  } else {
+    if (!sessions[req.cookies.sessionId]) {
+      sessions[req.cookies.sessionId] = {}
+    }
+    req.session = sessions[req.cookies.sessionId]
   }
   next()
 })
@@ -137,6 +161,16 @@ app.route('/register')
   }
 })
 
+//验证码
+app.get('/captcha-img', (req, res, next) => {
+  const captcha = svgCaptcha.create({
+    color: true,
+  })
+  req.session.captcha = captcha.text
+  res.type('svg')
+  res.status(200).send(captcha.data) 
+})
+
 app.route('/login')
 .get((req, res, next) => {
   res.render('login.pug', {
@@ -144,7 +178,12 @@ app.route('/login')
   })
 })
 .post((req, res, next) => {
+  res.header("Content-Type", "application/json; charset=utf-8")
   const loginInfo = req.body
+  if (loginInfo.captcha !== req.session.captcha) {
+    res.end('验证码错误')
+    return
+  }
   const userStmt = db.prepare('SELECT * FROM users WHERE name = ? AND password = ?')
   const user = userStmt.get(loginInfo.name, loginInfo.password)
   if (user) {
@@ -157,6 +196,7 @@ app.route('/login')
     res.status(400).end('用户名或密码错误')
   }
 })
+
 
 app.get('/logout', (req, res, next) => {
   res.clearCookie('loginUser')
