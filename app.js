@@ -5,6 +5,7 @@ const Database = require('better-sqlite3')
 const multer  = require('multer')
 const path = require('path')
 const svgCaptcha = require('svg-captcha')
+const md5 = require('md5')
 
 const storage = multer.diskStorage({
   destination: function (req, res, cb) {
@@ -156,7 +157,7 @@ app.route('/register')
     res.status(400).end('密码不能为空')
   } else {
     const addUser = db.prepare('INSERT INTO users (name, password, email, avatar) VALUES (?, ?, ?, ?)')
-    const result = addUser.run(regInfo.name, regInfo.password, regInfo.email, regInfo.avatar)
+    const result = addUser.run(regInfo.name, md5(regInfo.password), regInfo.email, regInfo.avatar)
     res.render('register-success.pug')
   }
 })
@@ -176,6 +177,7 @@ app.route('/login')
   res.render('login.pug', {
     url: req.headers.referer
   })
+  console.log(md5('123'))
 })
 .post((req, res, next) => {
   res.header("Content-Type", "application/json; charset=utf-8")
@@ -184,8 +186,7 @@ app.route('/login')
     res.end('验证码错误')
     return
   }
-  const userStmt = db.prepare('SELECT * FROM users WHERE name = ? AND password = ?')
-  const user = userStmt.get(loginInfo.name, loginInfo.password)
+  const user = db.prepare('SELECT * FROM users WHERE name = ? AND password = ?').get(loginInfo.name, md5(loginInfo.password))
   if (user) {
     //给cookie颁发签名 
     res.cookie('loginUser', user.name, {
@@ -241,7 +242,6 @@ app.delete('/post/:id', (req, res, next) => {
 
 app.post('/upload', upload.any(), (req, res, next) => {
   const files = req.files
-  console.log(files)
   const urls = files.map(file => `http://localhost:8000/uploads/` + file.filename)
   res.json(urls)
 })
